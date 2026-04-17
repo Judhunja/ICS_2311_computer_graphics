@@ -1,4 +1,8 @@
 /*
+Group 15
+Joshua Muimi - SCT211-0244/2023
+Jude Hunja - SCT211-0309/2023
+
  * FILE: q1_base_ellipse.cpp
  * DESCRIPTION: Draws the base ellipse using the Midpoint Algorithm.
  * Center explicitly set to (-2, 2), rx = 6, ry = 5.

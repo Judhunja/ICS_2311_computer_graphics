@@ -1,4 +1,8 @@
 /*
+Group 15
+Joshua Muimi - SCT211-0244/2023
+Jude Hunja - SCT211-0309/2023
+
  * FILE: q1d_sheared_boundary_fill.cpp
  * DESCRIPTION: Applies a 2x2 Shear to an ellipse centered at (-2,2).
  * Then uses a Boundary Fill algorithm to fill the shape with Green.

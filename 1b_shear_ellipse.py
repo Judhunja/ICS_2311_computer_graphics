@@ -1,3 +1,7 @@
+# Group 15
+# Joshua Muimi - SCT211-0244/2023
+# Jude Hunja - SCT211-0309/2023
+
 import sys
 import math
 from OpenGL.GL import *

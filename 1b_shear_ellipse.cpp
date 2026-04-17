@@ -1,3 +1,9 @@
+/*
+Group 15
+Joshua Muimi - SCT211-0244/2023
+Jude Hunja - SCT211-0309/2023
+*/
+
 #include <GL/glut.h>
 #include <vector>
 #include <stack>
