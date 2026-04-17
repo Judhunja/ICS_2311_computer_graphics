@@ -1,0 +1,127 @@
+#include <GL/glut.h>
+#include <vector>
+#include <stack>
+#include <string>
+
+const int UNIT = 15; 
+const int WINDOW_SIZE = 600;
+const int CENTER = WINDOW_SIZE / 2;
+
+// Virtual 2D grid acts as a canvas: 0 = Background, 1 = Boundary (Ellipse), 2 = Fill Color
+std::vector<std::vector<int>> grid(WINDOW_SIZE, std::vector<int>(WINDOW_SIZE, 0));
+
+// Safely sets a pixel value on the virtual grid if it's within window bounds
+void setPixel(int x, int y, int value) {
+    if (x >= 0 && x < WINDOW_SIZE && y >= 0 && y < WINDOW_SIZE) grid[x][y] = value;
+}
+
+void plotEllipsePoints(int x, int y) {
+    int cx = CENTER + (-2 * UNIT), cy = CENTER + (2 * UNIT);  
+    setPixel(cx + x, cy + y, 1); setPixel(cx - x, cy + y, 1);
+    setPixel(cx + x, cy - y, 1); setPixel(cx - x, cy - y, 1);
+}
+
+// Computes and plots the coordinates of the ellipse using the Midpoint Ellipse Algorithm
+void computeMidpointEllipse() {
+    float rx = 6 * UNIT, ry = 5 * UNIT;
+    float x = 0, y = ry;
+    float p1 = (ry * ry) - (rx * rx * ry) + (0.25 * rx * rx);
+    float dx = 2 * ry * ry * x, dy = 2 * rx * rx * y;
+    while (dx < dy) {
+        plotEllipsePoints(x, y);
+        if (p1 < 0) { x++; dx += (2 * ry * ry); p1 += dx + (ry * ry); } 
+        else { x++; y--; dx += (2 * ry * ry); dy -= (2 * rx * rx); p1 += dx - dy + (ry * ry); }
+    }
+    float p2 = (ry * ry) * ((x + 0.5) * (x + 0.5)) + (rx * rx) * ((y - 1) * (y - 1)) - (rx * rx * ry * ry);
+    while (y >= 0) {
+        plotEllipsePoints(x, y);
+        if (p2 > 0) { y--; dy -= (2 * rx * rx); p2 += (rx * rx) - dy; } 
+        else { y--; x++; dx += (2 * ry * ry); dy -= (2 * rx * rx); p2 += dx - dy + (rx * rx); }
+    }
+}
+
+// Flood Fill Algorithm implemented with an explicit Stack (avoids recursive stack overflow)
+// Starts at (start_x, start_y) and replaces target_val with fill_val
+void floodFill(int start_x, int start_y, int target_val, int fill_val) {
+    std::stack<std::pair<int, int>> stk;
+    stk.push({start_x, start_y});
+    while (!stk.empty()) {
+        auto current = stk.top(); stk.pop();
+        int px = current.first, py = current.second;
+        if (px < 0 || px >= WINDOW_SIZE || py < 0 || py >= WINDOW_SIZE) continue;
+        if (grid[px][py] == target_val) {
+            grid[px][py] = fill_val;
+            stk.push({px + 1, py}); stk.push({px - 1, py});
+            stk.push({px, py + 1}); stk.push({px, py - 1});
+        }
+    }
+}
+
+void drawText(float x, float y, std::string text) {
+    glRasterPos2f(x, y);
+    for (char c : text) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, c);
+}
+
+void drawAxes() {
+    glColor3f(0.4f, 0.4f, 0.4f);
+    glBegin(GL_LINES);
+    glVertex2f(0.0f, CENTER); glVertex2f(WINDOW_SIZE, CENTER);
+    glVertex2f(CENTER, 0.0f); glVertex2f(CENTER, WINDOW_SIZE);
+    glEnd();
+
+    glColor3f(0.8f, 0.8f, 0.8f);
+    for (int i = -15; i <= 15; i++) {
+        if (i == 0) continue; 
+        float sc = CENTER + (i * UNIT);
+        glBegin(GL_LINES); glVertex2f(sc, CENTER - 5.0f); glVertex2f(sc, CENTER + 5.0f); glEnd();
+        drawText(sc - 5.0f, CENTER - 18.0f, std::to_string(i));
+        glBegin(GL_LINES); glVertex2f(CENTER - 5.0f, sc); glVertex2f(CENTER + 5.0f, sc); glEnd();
+        drawText(CENTER - 20.0f, sc - 4.0f, std::to_string(i));
+    }
+    drawText(WINDOW_SIZE - 20.0f, CENTER + 10.0f, "X");
+    drawText(CENTER + 10.0f, WINDOW_SIZE - 20.0f, "Y");
+    
+    glColor3f(1.0f, 1.0f, 0.0f); glPointSize(4.0f);
+    glBegin(GL_POINTS); glVertex2i(CENTER, CENTER); glEnd();
+    drawText(CENTER + 5.0f, CENTER + 5.0f, "(0,0)");
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBegin(GL_POINTS);
+    for (int i = 0; i < WINDOW_SIZE; i++) {
+        for (int j = 0; j < WINDOW_SIZE; j++) {
+            if (grid[i][j] == 1) { glColor3f(1.0f, 1.0f, 1.0f); glVertex2i(i, j); } 
+            else if (grid[i][j] == 2) { glColor3f(0.0f, 1.0f, 1.0f); glVertex2i(i, j); }
+        }
+    }
+    glEnd();
+    
+    drawAxes(); // Draw axes on top of fill
+    
+    // Label Center
+    glColor3f(1.0f, 0.0f, 0.0f); glPointSize(4.0f);
+    glBegin(GL_POINTS); glVertex2i(CENTER + (-2 * UNIT), CENTER + (2 * UNIT)); glEnd();
+    drawText(CENTER + (-2 * UNIT) + 5, CENTER + (2 * UNIT) + 5, "Center (-2,2)");
+    
+    glutSwapBuffers();
+}
+
+void init() {
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glMatrixMode(GL_PROJECTION); glLoadIdentity();
+    gluOrtho2D(0, WINDOW_SIZE, 0, WINDOW_SIZE);
+    computeMidpointEllipse();
+    floodFill(CENTER + (-2 * UNIT), CENTER + (2 * UNIT), 0, 2); 
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(WINDOW_SIZE, WINDOW_SIZE);
+    glutCreateWindow("Q1A: Flood Fill Cyan");
+    init();
+    glutDisplayFunc(display);
+    glutMainLoop();
+    return 0;
+}
